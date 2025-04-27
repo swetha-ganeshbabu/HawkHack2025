@@ -586,7 +586,7 @@
                     }
                   },
                   {
-                    text: "Identify the main object in this image with a single word. Return ONLY the word, nothing else."
+                    text: "Identify the main object in this image with a single word."
                   }
                 ]
               }]
@@ -595,15 +595,9 @@
           
           const data = await response.json();
           if (data.candidates && data.candidates[0].content.parts[0].text) {
-            const identifiedObject = data.candidates[0].content.parts[0].text.trim().toLowerCase();
-            resultText.textContent = identifiedObject;
+            const result = data.candidates[0].content.parts[0].text;
+            resultText.textContent = result;
             resultText.style.display = 'block';
-            
-            // Load the corresponding 3D model
-            await loadModel(identifiedObject);
-            
-            // Update content based on the identified object
-            updateContent(identifiedObject);
           }
         } catch (error) {
           console.error('Error analyzing image:', error);
@@ -612,121 +606,229 @@
         }
       }
 
-      // Function to load the appropriate 3D model
-      async function loadModel(objectName) {
+      // Initialize the camera feed
+      async function initCamera() {
         try {
-          // Remove existing model if any
-          if (model) {
-            scene.remove(model);
-          }
-          
-          // Load the new model
-          const loader = new THREE.GLTFLoader();
-          const modelPath = `/static/models/${objectName}.glb`;
-          
-          return new Promise((resolve, reject) => {
-            loader.load(modelPath, 
-              function (gltf) {
-                console.log('Model loaded successfully:', gltf);
-                model = gltf.scene;
-                
-                // Center the model
-                const box = new THREE.Box3().setFromObject(model);
-                const center = box.getCenter(new THREE.Vector3());
-                model.position.sub(center);
-
-                // Scale the model appropriately
-                const scale = 2.0;
-                model.scale.set(scale, scale, scale);
-                
-                // Position the model in front of the camera
-                model.position.set(0, -1, -2);
-                
-                scene.add(model);
-                console.log('Model added to scene');
-                
-                // Analyze the model and create labels
-                analyzeModelViews();
-                resolve();
-              },
-              function (xhr) {
-                console.log('Loading progress:', (xhr.loaded / xhr.total * 100) + '%');
-              },
-              function (error) {
-                console.error('Error loading model:', error);
-                reject(error);
-              }
-            );
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+              width: 640,
+              height: 480,
+              facingMode: 'user'
+            } 
           });
-        } catch (error) {
-          console.error('Error in loadModel:', error);
-          throw error;
+          video.srcObject = stream;
+          isCameraActive = true;
+          
+          // Wait for video to be ready
+          video.onloadedmetadata = () => {
+            console.log('Video stream ready');
+            // Show capture button
+            captureBtn.style.display = 'block';
+            // Initialize hand tracking after camera is ready
+            initHandTracking();
+            
+            // Start sending frames to MediaPipe
+            const camera = new Camera(video, {
+              onFrame: async () => {
+                try {
+                  await hands.send({ image: video });
+                } catch (error) {
+                  console.error('Error processing hand tracking:', error);
+                }
+              },
+              width: 640,
+              height: 480
+            });
+            camera.start();
+            console.log('Camera tracking started');
+          };
+        } catch (err) {
+          console.error('Camera error:', err);
+          // If camera fails, switch to black background
+          setBackground('black');
         }
       }
 
-      // Function to update content based on the identified object
-      function updateContent(objectName) {
-        // Update explanation section
-        const explanationSection = document.querySelector('.explanation-left');
-        const explanationTitle = explanationSection.querySelector('h3');
-        const explanationPoints = explanationSection.querySelector('.explanation-points');
-        
-        // Update title
-        explanationTitle.textContent = `${objectName.charAt(0).toUpperCase() + objectName.slice(1)} Diagram Explanation`;
-        
-        // Update explanation points based on the object
-        const explanations = {
-          'heart': [
-            'The heart is a muscular organ that pumps blood throughout the body',
-            'It has four chambers: two atria and two ventricles',
-            'The right side pumps blood to the lungs for oxygenation',
-            'The left side pumps oxygenated blood to the body',
-            'Valves prevent backflow of blood',
-            'The heart beats about 100,000 times per day'
-          ],
-          'brain': [
-            'The brain is the control center of the nervous system',
-            'It consists of three main parts: cerebrum, cerebellum, and brainstem',
-            'The cerebrum controls voluntary actions and cognitive functions',
-            'The cerebellum coordinates movement and balance',
-            'The brainstem controls basic life functions',
-            'The brain contains billions of neurons that communicate through electrical signals'
-          ],
-          'lung': [
-            'Lungs are the primary organs of the respiratory system',
-            'They exchange oxygen and carbon dioxide with the blood',
-            'The right lung has three lobes, while the left has two',
-            'The diaphragm helps in breathing by expanding and contracting',
-            'Lungs are protected by the rib cage',
-            'The surface area of the lungs is about the size of a tennis court'
-          ]
-          // Add more objects and their explanations as needed
-        };
-        
-        // Set default explanation if object not found
-        const objectExplanations = explanations[objectName] || [
-          'This is a 3D model of the identified object',
-          'Use the mouse to rotate and zoom',
-          'Click on labels to learn more about different parts',
-          'Watch the related videos for more information'
-        ];
-        
-        // Update explanation points
-        explanationPoints.innerHTML = objectExplanations.map(point => 
-          `<li>${point}</li>`
-        ).join('');
-        
-        // Update YouTube search query
-        fetchYouTubeVideos(objectName);
+      // Function to create arrow helper
+      function createArrowHelper(start, end, color = 0xffffff) {
+        const dir = new THREE.Vector3().subVectors(end, start).normalize();
+        const length = start.distanceTo(end);
+        const arrowHelper = new THREE.ArrowHelper(dir, start, length, color, length * 0.2, length * 0.1);
+        return arrowHelper;
       }
 
-      // Modified function to fetch YouTube videos based on the identified object
-      async function fetchYouTubeVideos(objectName) {
-        const query = `${objectName} diagram explanation`;
+      // Function to create 3D labels based on analysis
+      function create3DLabels(labelsData) {
+        if (!model) return;
+        
+        // Remove existing labels
+        if (labelContainer) {
+          scene.remove(labelContainer);
+        }
+        
+        labelContainer = new THREE.Group();
+        
+        // Get model bounding box
+        const box = new THREE.Box3().setFromObject(model);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+        
+        // Define label positions around the model
+        const radius = size.x * 1.2;  // Distance from center
+        
+        // Create labels and connecting lines based on the analyzed data
+        labelsData.forEach(label => {
+          // Calculate position around the model
+          const angleRad = parseFloat(label.angle) * Math.PI / 180;
+          const x = center.x + radius * Math.cos(angleRad);
+          const z = center.z + radius * Math.sin(angleRad);
+          const y = center.y;  // Default height, can be adjusted based on model
+          
+          const labelPosition = new THREE.Vector3(x, y, z);
+          const targetPosition = new THREE.Vector3(
+            center.x + size.x * 0.3 * Math.cos(angleRad),
+            y,
+            center.z + size.z * 0.3 * Math.sin(angleRad)
+          );
+          
+          // Create text label
+          const textLabel = createTextLabel(label.text, labelPosition);
+          labelContainer.add(textLabel);
+          
+          // Create connecting line
+          const line = createConnectingLine(targetPosition, labelPosition);
+          labelContainer.add(line);
+          
+          // Add small circle at the model connection point
+          const circleGeometry = new THREE.CircleGeometry(0.05, 32);
+          const circleMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+          const circle = new THREE.Mesh(circleGeometry, circleMaterial);
+          circle.position.copy(targetPosition);
+          circle.lookAt(camera.position);
+          labelContainer.add(circle);
+        });
+        
+        scene.add(labelContainer);
+      }
+
+      // Add mouse event handlers
+      function initMouseControls() {
+        // Detect if using trackpad
+        canvas.addEventListener('wheel', (event) => {
+          const now = Date.now();
+          if (now - lastWheelTime < 50) {
+            isTrackpad = true;
+          }
+          lastWheelTime = now;
+          wheelDelta = event.deltaY;
+        });
+
+        // Left mouse button for rotation
+        canvas.addEventListener('mousedown', (event) => {
+          if (event.button === 0) { // Left mouse button
+            isMouseDown = true;
+            lastMouseX = event.clientX;
+            lastMouseY = event.clientY;
+            canvas.style.cursor = 'grabbing';
+          } else if (event.button === 2) { // Right mouse button
+            isRightMouseDown = true;
+            lastRightMouseX = event.clientX;
+            lastRightMouseY = event.clientY;
+            canvas.style.cursor = 'move';
+          }
+        });
+
+        // Mouse up event
+        canvas.addEventListener('mouseup', (event) => {
+          if (event.button === 0) {
+            isMouseDown = false;
+            canvas.style.cursor = 'grab';
+          } else if (event.button === 2) {
+            isRightMouseDown = false;
+            canvas.style.cursor = 'default';
+          }
+        });
+
+        // Mouse move event for rotation and panning
+        canvas.addEventListener('mousemove', (event) => {
+          if (!model) return;
+          
+          if (isMouseDown) {
+            // Rotation with trackpad support
+            const deltaX = event.clientX - lastMouseX;
+            const deltaY = event.clientY - lastMouseY;
+            
+            // Adjust sensitivity based on whether using trackpad
+            const rotationMultiplier = isTrackpad ? 0.5 : 1;
+            
+            targetRotation.y += deltaX * mouseRotationSpeed * rotationMultiplier;
+            targetRotation.x += deltaY * mouseRotationSpeed * rotationMultiplier;
+            
+            // Clamp rotation
+            targetRotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, targetRotation.x));
+            targetRotation.y = Math.max(-Math.PI, Math.min(Math.PI, targetRotation.y));
+            
+            lastMouseX = event.clientX;
+            lastMouseY = event.clientY;
+          } else if (isRightMouseDown) {
+            // Panning with trackpad support
+            const deltaX = event.clientX - lastRightMouseX;
+            const deltaY = event.clientY - lastRightMouseY;
+            
+            // Adjust sensitivity based on whether using trackpad
+            const panMultiplier = isTrackpad ? 0.5 : 1;
+            
+            // Calculate pan direction in world space
+            const panX = deltaX * mousePanSpeed * panMultiplier;
+            const panY = -deltaY * mousePanSpeed * panMultiplier; // Invert Y for natural movement
+            
+            // Apply pan to model position
+            model.position.x += panX;
+            model.position.y += panY;
+            
+            lastRightMouseX = event.clientX;
+            lastRightMouseY = event.clientY;
+          }
+        });
+
+        // Enhanced mouse wheel event for zoom with trackpad support
+        canvas.addEventListener('wheel', (event) => {
+          if (!model) return;
+          
+          // Calculate zoom direction and amount
+          const zoomDirection = Math.sign(event.deltaY);
+          
+          // Adjust zoom speed based on whether using trackpad
+          const zoomMultiplier = isTrackpad ? 0.5 : 1;
+          const zoomAmount = zoomDirection * mouseZoomSpeed * zoomMultiplier;
+          
+          // Calculate new zoom target
+          const newZoom = camera.position.z + zoomAmount;
+          
+          // Clamp zoom
+          targetZoom = Math.max(minZoom, Math.min(maxZoom, newZoom));
+          
+          // Prevent default scroll behavior
+          event.preventDefault();
+        });
+
+        // Prevent context menu on right click
+        canvas.addEventListener('contextmenu', (event) => {
+          event.preventDefault();
+        });
+
+        // Set initial cursor style
+        canvas.style.cursor = 'grab';
+      }
+
+      // Function to fetch YouTube videos
+      async function fetchYouTubeVideos() {
+        const query = "heart diagram explanation";
         const apiKey = 'AIzaSyBiuZcFHVQO_mGOVuo_W6NBIOY9xnWSZ3Q';
         const maxResults = 6;
         
         try {
+          // Use a different endpoint and add more parameters
           const response = await fetch(
             `https://www.googleapis.com/youtube/v3/search?` +
             `part=snippet&` +
@@ -930,221 +1032,6 @@
 
       // Initialize with black background
       setBackground('black');
-
-      // Initialize the camera feed
-      async function initCamera() {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
-              width: 640,
-              height: 480,
-              facingMode: 'user'
-            } 
-          });
-          video.srcObject = stream;
-          isCameraActive = true;
-          
-          // Wait for video to be ready
-          video.onloadedmetadata = () => {
-            console.log('Video stream ready');
-            // Show capture button
-            captureBtn.style.display = 'block';
-            // Initialize hand tracking after camera is ready
-            initHandTracking();
-            
-            // Start sending frames to MediaPipe
-            const camera = new Camera(video, {
-              onFrame: async () => {
-                try {
-                  await hands.send({ image: video });
-                } catch (error) {
-                  console.error('Error processing hand tracking:', error);
-                }
-              },
-              width: 640,
-              height: 480
-            });
-            camera.start();
-            console.log('Camera tracking started');
-          };
-        } catch (err) {
-          console.error('Camera error:', err);
-          // If camera fails, switch to black background
-          setBackground('black');
-        }
-      }
-
-      // Function to create arrow helper
-      function createArrowHelper(start, end, color = 0xffffff) {
-        const dir = new THREE.Vector3().subVectors(end, start).normalize();
-        const length = start.distanceTo(end);
-        const arrowHelper = new THREE.ArrowHelper(dir, start, length, color, length * 0.2, length * 0.1);
-        return arrowHelper;
-      }
-
-      // Function to create 3D labels based on analysis
-      function create3DLabels(labelsData) {
-        if (!model) return;
-        
-        // Remove existing labels
-        if (labelContainer) {
-          scene.remove(labelContainer);
-        }
-        
-        labelContainer = new THREE.Group();
-        
-        // Get model bounding box
-        const box = new THREE.Box3().setFromObject(model);
-        const size = box.getSize(new THREE.Vector3());
-        const center = box.getCenter(new THREE.Vector3());
-        
-        // Define label positions around the model
-        const radius = size.x * 1.2;  // Distance from center
-        
-        // Create labels and connecting lines based on the analyzed data
-        labelsData.forEach(label => {
-          // Calculate position around the model
-          const angleRad = parseFloat(label.angle) * Math.PI / 180;
-          const x = center.x + radius * Math.cos(angleRad);
-          const z = center.z + radius * Math.sin(angleRad);
-          const y = center.y;  // Default height, can be adjusted based on model
-          
-          const labelPosition = new THREE.Vector3(x, y, z);
-          const targetPosition = new THREE.Vector3(
-            center.x + size.x * 0.3 * Math.cos(angleRad),
-            y,
-            center.z + size.z * 0.3 * Math.sin(angleRad)
-          );
-          
-          // Create text label
-          const textLabel = createTextLabel(label.text, labelPosition);
-          labelContainer.add(textLabel);
-          
-          // Create connecting line
-          const line = createConnectingLine(targetPosition, labelPosition);
-          labelContainer.add(line);
-          
-          // Add small circle at the model connection point
-          const circleGeometry = new THREE.CircleGeometry(0.05, 32);
-          const circleMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-          const circle = new THREE.Mesh(circleGeometry, circleMaterial);
-          circle.position.copy(targetPosition);
-          circle.lookAt(camera.position);
-          labelContainer.add(circle);
-        });
-        
-        scene.add(labelContainer);
-      }
-
-      // Add mouse event handlers
-      function initMouseControls() {
-        // Detect if using trackpad
-        canvas.addEventListener('wheel', (event) => {
-          const now = Date.now();
-          if (now - lastWheelTime < 50) {
-            isTrackpad = true;
-          }
-          lastWheelTime = now;
-          wheelDelta = event.deltaY;
-        });
-        
-        // Left mouse button for rotation
-        canvas.addEventListener('mousedown', (event) => {
-          if (event.button === 0) { // Left mouse button
-            isMouseDown = true;
-            lastMouseX = event.clientX;
-            lastMouseY = event.clientY;
-            canvas.style.cursor = 'grabbing';
-          } else if (event.button === 2) { // Right mouse button
-            isRightMouseDown = true;
-            lastRightMouseX = event.clientX;
-            lastRightMouseY = event.clientY;
-            canvas.style.cursor = 'move';
-          }
-        });
-
-        // Mouse up event
-        canvas.addEventListener('mouseup', (event) => {
-          if (event.button === 0) {
-            isMouseDown = false;
-            canvas.style.cursor = 'grab';
-          } else if (event.button === 2) {
-            isRightMouseDown = false;
-            canvas.style.cursor = 'default';
-          }
-        });
-
-        // Mouse move event for rotation and panning
-        canvas.addEventListener('mousemove', (event) => {
-          if (!model) return;
-          
-          if (isMouseDown) {
-            // Rotation with trackpad support
-            const deltaX = event.clientX - lastMouseX;
-            const deltaY = event.clientY - lastMouseY;
-            
-            // Adjust sensitivity based on whether using trackpad
-            const rotationMultiplier = isTrackpad ? 0.5 : 1;
-            
-            targetRotation.y += deltaX * mouseRotationSpeed * rotationMultiplier;
-            targetRotation.x += deltaY * mouseRotationSpeed * rotationMultiplier;
-            
-            // Clamp rotation
-            targetRotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, targetRotation.x));
-            targetRotation.y = Math.max(-Math.PI, Math.min(Math.PI, targetRotation.y));
-            
-            lastMouseX = event.clientX;
-            lastMouseY = event.clientY;
-          } else if (isRightMouseDown) {
-            // Panning with trackpad support
-            const deltaX = event.clientX - lastRightMouseX;
-            const deltaY = event.clientY - lastRightMouseY;
-            
-            // Adjust sensitivity based on whether using trackpad
-            const panMultiplier = isTrackpad ? 0.5 : 1;
-            
-            // Calculate pan direction in world space
-            const panX = deltaX * mousePanSpeed * panMultiplier;
-            const panY = -deltaY * mousePanSpeed * panMultiplier; // Invert Y for natural movement
-            
-            // Apply pan to model position
-            model.position.x += panX;
-            model.position.y += panY;
-            
-            lastRightMouseX = event.clientX;
-            lastRightMouseY = event.clientY;
-          }
-        });
-        
-        // Enhanced mouse wheel event for zoom with trackpad support
-        canvas.addEventListener('wheel', (event) => {
-          if (!model) return;
-          
-          // Calculate zoom direction and amount
-          const zoomDirection = Math.sign(event.deltaY);
-          
-          // Adjust zoom speed based on whether using trackpad
-          const zoomMultiplier = isTrackpad ? 0.5 : 1;
-          const zoomAmount = zoomDirection * mouseZoomSpeed * zoomMultiplier;
-          
-          // Calculate new zoom target
-          const newZoom = camera.position.z + zoomAmount;
-          
-          // Clamp zoom
-          targetZoom = Math.max(minZoom, Math.min(maxZoom, newZoom));
-          
-          // Prevent default scroll behavior
-          event.preventDefault();
-        });
-        
-        // Prevent context menu on right click
-        canvas.addEventListener('contextmenu', (event) => {
-          event.preventDefault();
-        });
-        
-        // Set initial cursor style
-        canvas.style.cursor = 'grab';
-      }
     });
   </script>
 </body>

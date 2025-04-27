@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Portfolio Details - Scaffold Bootstrap Template</title>
+  <meta name="description" content="">
+  <meta name="keywords" content="">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Nunito+Sans:ital,wght@0,200;0,300;0,400;0,600;0,700;0,800;0,900;1,200;1,300;1,400;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+  <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+
+  <!-- Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+  <link href="assets/css/custom.css" rel="stylesheet">
+
+  <style>
+    /* Main Webcam Card Styling */
+    .card {
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+      border: none;
+      margin-bottom: 2rem;
+    }
+
+    .card-header {
+      position: relative;
+      overflow: hidden;
+      border-bottom: none;
+      padding: 1.25rem;
+    }
+
+    .card-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1;
+    }
+
+    .card-header > * {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Webcam Area Styling */
+    .bg-secondary {
+      background-color: #6c757d !important;
+    }
+
+    /* Sidebar Controls Styling */
+    .bg-light {
+      background-color: #f8f9fa !important;
+    }
+
+    .btn {
+      padding: 0.75rem 1.25rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .btn i {
+      margin-right: 0.5rem;
+    }
+
+    .btn-primary {
+      background-color: #0d6efd;
+      border: none;
+    }
+
+    .btn-primary:hover {
+      background-color: #0b5ed7;
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background-color: #6c757d;
+      border: none;
+    }
+
+    .btn-secondary:hover {
+      background-color: #5c636a;
+      transform: translateY(-2px);
+    }
+
+    .btn-info {
+      background-color: #0dcaf0;
+      border: none;
+    }
+
+    .btn-info:hover {
+      background-color: #31d2f2;
+      transform: translateY(-2px);
+    }
+
+    /* Dropdown Styling */
+    .dropdown-menu {
+      border: none;
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+      padding: 0.5rem;
+    }
+
+    .dropdown-item {
+      padding: 0.75rem 1.25rem;
+      border-radius: 0.25rem;
+      transition: all 0.3s ease;
+    }
+
+    .dropdown-item:hover {
+      background-color: #f8f9fa;
+      transform: translateX(5px);
+    }
+
+    .dropdown-item i {
+      margin-right: 0.5rem;
+    }
+
+    /* Content Card Styling */
+    .card-body {
+      padding: 2rem;
+    }
+
+    .card-title {
+      color: #212529;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-text {
+      color: #6c757d;
+      line-height: 1.8;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Video Carousel Styling */
+    .video-item {
+      position: relative;
+      overflow: hidden;
+      border-radius: 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .video-item:hover {
+      transform: translateY(-5px);
+    }
+
+    .video-item img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 0.5rem;
+    }
+
+    .video-item h5 {
+      color: #212529;
+      font-weight: 600;
+      margin-top: 1rem;
+      padding: 0 0.5rem;
+    }
+
+    /* Swiper Customization */
+    .swiper {
+      padding: 1rem 0;
+    }
+
+    .swiper-pagination-bullet {
+      width: 10px;
+      height: 10px;
+      background: #6c757d;
+      opacity: 0.5;
+    }
+
+    .swiper-pagination-bullet-active {
+      background: #0d6efd;
+      opacity: 1;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+      .card-body {
+        padding: 1.5rem;
+      }
+      
+      .video-item img {
+        height: 150px;
+      }
+    }
+  </style>
+
+</head>
+
+<body class="portfolio-details-page" style="background: #000957;">
+
+  <header id="header" class="header d-flex align-items-center sticky-top"
+    style="background: linear-gradient(135deg, rgba(52,76,183,0.7) 0%, rgba(0,9,87,0.7) 100%); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: #fff; border-bottom: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 24px 0 rgba(0,0,0,0.08);">
+    <div class="container position-relative d-flex align-items-center" >
+
+      <a href="index.html" class="logo d-flex align-items-center me-auto" style="color: #fff; font-family: 'Poppins', sans-serif;">
+        <!-- Uncomment the line below if you also wish to use an image logo -->
+        <!-- <img src="assets/img/logo.png" alt=""> -->
+        <h1 class="sitename" style="color: #fff; font-family: 'Poppins', sans-serif;">Scaffold</h1>
+      </a>
+
+      <nav id="navmenu" class="navmenu" style="color: #fff; font-family: 'Poppins', sans-serif;">
+        <ul style="color: #fff; font-family: 'Poppins', sans-serif;">
+          <li><a href="index.html" style="color: #fff; font-family: 'Poppins', sans-serif;">Home</a></li>
+                </ul>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list" style="color: #fff;"></i>
+      </nav>
+
+      <div class="header-social-links">
+      </div>
+
+    </div>
+  </header>
+
+  <main class="main" style="background: #000957;">
+
+
+    
+
+    <!-- Portfolio Details Section -->
+    <section id="portfolio-details" class="portfolio-details section" style="background: #000957;">
+      <div class="container" data-aos="fade-up" data-aos-delay="100"
+        style="background: #000957; font-family: 'Poppins', sans-serif; color: #fff;">
+        <!-- Main Webcam Card -->
+        <div class="card webcam-card" style="background: #344CB7; color: #fff; border: none; font-family: 'Poppins', sans-serif;">
+          <div class="card-header text-white" style="background: url('https://i.pinimg.com/originals/7e/c7/0b/7ec70b9ed2f3d8194bbb437a348e82d7.gif') center center / cover no-repeat; color: #fff; font-family: 'Poppins', sans-serif;">
+            <h3 class="mb-0" style="color: #fff; font-family: 'Poppins', sans-serif;">Live 3D Model</h3>
+          </div>
+          <div class="controls-nav-horizontal px-4 py-3" style="background: #344CB7; border-bottom: 1px solid #222; border-radius: 0 0 0.5rem 0.5rem;">
+            <button class="btn control-btn" style="background: #00224D; color: #fff; border: none; font-family: 'Poppins', sans-serif;">
+              <i class="bi bi-camera" style="font-size: 1.5rem; color: #fff;"></i> <span style="color: #fff; font-family: 'Poppins', sans-serif;">Take Photo</span>
+            </button>
+            <div class="dropdown background-dropdown" style="width: auto;">
+              <button class="btn control-btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                style="background: #00224D; color: #fff; border: none; font-family: 'Poppins', sans-serif;">
+                <i class="bi bi-palette" style="font-size: 1.5rem; color: #fff;"></i> <span style="color: #fff; font-family: 'Poppins', sans-serif;">Change Background</span>
+              </button>
+              <ul class="dropdown-menu" style="background: #344CB7; color: #fff; min-width: 180px; font-family: 'Poppins', sans-serif;">
+                <li><a class="dropdown-item" href="#" style="color: #fff;"> <i class="bi bi-camera-video" style="font-size: 1.5rem; color: #fff;"></i> Webcam</a></li>
+                <li><a class="dropdown-item" href="#" style="color: #fff;"> <i class="bi bi-square" style="font-size: 1.5rem; color: #fff;"></i> White Background</a></li>
+                <li><a class="dropdown-item" href="#" style="color: #fff;"> <i class="bi bi-square-fill" style="font-size: 1.5rem; color: #fff;"></i> Black Background</a></li>
+              </ul>
+            </div>
+            <button class="btn control-btn" style="background: #00224D; color: #fff; border: none; font-family: 'Poppins', sans-serif;">
+              <i class="bi bi-mic" style="font-size: 1.5rem; color: #fff;"></i> <span style="color: #fff; font-family: 'Poppins', sans-serif;">Audio Summary</span>
+            </button>
+          </div>
+          <div class="card-body p-0" style="background: #344CB7; color: #fff; font-family: 'Poppins', sans-serif;">
+            <div class="row g-0">
+              <!-- Webcam Area -->
+              <div class="col-12 webcam-area" style="background: #6c757d; color: #fff; font-family: 'Poppins', sans-serif;">
+                <h4 class="text-white" style="color: #fff; font-family: 'Poppins', sans-serif;">Webcam will be placed here</h4>
+      </div>
+            </div>
+          </div>
+          </div>
+
+        <!-- Content Card -->
+        <div class="card content-card" style="background: #344CB7; color: #fff; border: none; font-family: 'Poppins', sans-serif;">
+          <div class="card-header text-white" style="background: url('https://i.pinimg.com/originals/7e/c7/0b/7ec70b9ed2f3d8194bbb437a348e82d7.gif') center center / cover no-repeat; color: #fff; font-family: 'Poppins', sans-serif;">
+            <h3 class="card-title" style="color: #fff; font-family: 'Poppins', sans-serif;">About 3Ducate</h3>
+          </div>
+          <div class="card-body" style="background: #344CB7; color: #fff; font-family: 'Poppins', sans-serif;">
+            <p class="card-text" style="color: #fff; font-family: 'Poppins', sans-serif;">
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+            </p>
+            <p class="card-text" style="color: #fff; font-family: 'Poppins', sans-serif;">
+              Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+            </p>
+            <p class="card-text" style="color: #fff; font-family: 'Poppins', sans-serif;">
+              Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
+            </p>
+          </div>
+          </div>
+
+        <!-- Video Carousel Card -->
+        <div class="card video-carousel" style="background: #344CB7; color: #fff; border: none; font-family: 'Poppins', sans-serif;">
+          <div class="card-header" style="background: url('https://i.pinimg.com/originals/7e/c7/0b/7ec70b9ed2f3d8194bbb437a348e82d7.gif') center center / cover no-repeat; color: #fff; font-family: 'Poppins', sans-serif;">
+            <h3 class="mb-0 text-white" style="color: #fff; font-family: 'Poppins', sans-serif;">Educational Videos</h3>
+          </div>
+          <div class="card-body" style="background: #344CB7; color: #fff; font-family: 'Poppins', sans-serif;">
+            <div class="video-carousel-container">
+              <div class="video-carousel-wrapper">
+                <!-- Videos will be dynamically loaded here -->
+        </div>
+              <div class="carousel-controls">
+                <button class="btn btn-dark prev-btn" style="background: #00224D; color: #fff; border: none; font-family: 'Poppins', sans-serif;"><i class="bi bi-chevron-left" style="font-size: 1.5rem; color: #fff;"></i></button>
+                <button class="btn btn-dark next-btn" style="background: #00224D; color: #fff; border: none; font-family: 'Poppins', sans-serif;"><i class="bi bi-chevron-right" style="font-size: 1.5rem; color: #fff;"></i></button>
+      </div>
+    </div>
+          </div>
+        </div>
+      </div>
+    </section><!-- /Portfolio Details Section -->
+
+  </main>
+
+
+  <!-- Scroll Top -->
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+  <!-- Preloader -->
+  <div id="preloader"></div>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+  <script src="assets/vendor/aos/aos.js"></script>
+  <script src="assets/vendor/glightbox/js/glightbox.min.js"></script>
+  <script src="assets/vendor/imagesloaded/imagesloaded.pkgd.min.js"></script>
+  <script src="assets/vendor/isotope-layout/isotope.pkgd.min.js"></script>
+  <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
+
+  <!-- Main JS File -->
+  <script src="assets/js/main.js"></script>
+
+  <!-- Add jQuery and custom script before closing body tag -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      // Dummy video data
+      const dummyVideos = [
+        {
+          id: 'dQw4w9WgXcQ',
+          title: 'Introduction to 3D Learning',
+          thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg'
+        },
+        {
+          id: 'dQw4w9WgXcQ',
+          title: 'AR in Education',
+          thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg'
+        },
+        {
+          id: 'dQw4w9WgXcQ',
+          title: 'Interactive Learning',
+          thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg'
+        },
+        {
+          id: 'dQw4w9WgXcQ',
+          title: 'Future of Education',
+          thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg'
+        },
+        {
+          id: 'dQw4w9WgXcQ',
+          title: 'Virtual Reality in Classrooms',
+          thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg'
+        },
+        {
+          id: 'dQw4w9WgXcQ',
+          title: 'Digital Learning Tools',
+          thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg'
+        },
+        {
+          id: 'dQw4w9WgXcQ',
+          title: 'Online Education Trends',
+          thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg'
+        },
+        {
+          id: 'dQw4w9WgXcQ',
+          title: 'E-Learning Platforms',
+          thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg'
+        },
+        {
+          id: 'dQw4w9WgXcQ',
+          title: 'Educational Technology',
+          thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg'
+        }
+      ];
+
+      // Function to display videos
+      function displayVideos() {
+        const $wrapper = $('.video-carousel-wrapper');
+        $wrapper.empty();
+        
+        dummyVideos.forEach(video => {
+          const videoCard = `
+            <div class="video-item">
+              <div class="video-thumbnail">
+                <img src="${video.thumbnail}" alt="${video.title}">
+                <div class="play-overlay">
+                  <i class="bi bi-play-circle"></i>
+                </div>
+              </div>
+              <h5>${video.title}</h5>
+            </div>
+          `;
+          
+          $wrapper.append(videoCard);
+        });
+
+        initializeCarousel();
+      }
+
+      // Initialize carousel functionality
+      function initializeCarousel() {
+        const $wrapper = $('.video-carousel-wrapper');
+        const $items = $('.video-item');
+        let currentIndex = 0;
+        const itemsPerView = 3;
+        
+        // Set initial position
+        updateCarousel();
+
+        // Next button click
+        $('.next-btn').click(function() {
+          if (currentIndex < $items.length - itemsPerView) {
+            currentIndex++;
+            updateCarousel();
+          }
+        });
+
+        // Previous button click
+        $('.prev-btn').click(function() {
+          if (currentIndex > 0) {
+            currentIndex--;
+            updateCarousel();
+          }
+        });
+
+        function updateCarousel() {
+          const offset = -currentIndex * (100 / itemsPerView);
+          $wrapper.css('transform', `translateX(${offset}%)`);
+          
+          // Update button states
+          $('.prev-btn').prop('disabled', currentIndex === 0);
+          $('.next-btn').prop('disabled', currentIndex >= $items.length - itemsPerView);
+        }
+
+        // Auto-advance carousel every 5 seconds
+        setInterval(function() {
+          if (currentIndex < $items.length - itemsPerView) {
+            currentIndex++;
+            updateCarousel();
+          } else {
+            currentIndex = 0;
+            updateCarousel();
+          }
+        }, 5000);
+      }
+
+      // Display videos when page loads
+      displayVideos();
+    });
+  </script>
+
+</body>
+
+</html>
