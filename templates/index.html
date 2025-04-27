@@ -8,24 +8,111 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    .top-section {
+      height: 60vh;
+      position: relative;
+      border: 2px solid #ccc;
+      margin: 10px;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #000;
+    }
+    .bottom-section {
+      display: flex;
+      height: 40vh;
+      padding: 10px;
+      gap: 20px;
+    }
+    .explanation-section {
+      flex: 1;
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-y: auto;
+    }
+    .youtube-section {
+      flex: 1;
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-y: auto;
+    }
+    .video-container {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      padding: 10px;
+      background: white;
+      border-radius: 4px;
+    }
+    .video-thumbnail {
+      width: 120px;
+      height: 90px;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+    .video-info {
+      flex: 1;
+    }
+    .video-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .video-channel {
+      color: #666;
+      font-size: 0.9em;
     }
     #cameraFeed {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover;
-      z-index: 0;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      min-width: 100%;
+      min-height: 100%;
     }
     #threeCanvas {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 1;
-      pointer-events: none;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+    .explanation-points {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    .explanation-points li {
+      margin-bottom: 8px;
+    }
+    .play-button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .play-button:hover {
+      background: #45a049;
     }
     #openBtn {
       position: absolute;
@@ -63,6 +150,45 @@
       text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
       display: none;
     }
+    #backgroundToggle {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 2;
+      padding: 10px 20px;
+      background: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #backgroundToggle:hover {
+      background: #1976D2;
+    }
+    .background-options {
+      position: absolute;
+      top: 60px;
+      right: 20px;
+      z-index: 2;
+      display: none;
+      background: white;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .background-option {
+      padding: 8px 16px;
+      cursor: pointer;
+      border-radius: 4px;
+      margin: 4px 0;
+    }
+    .background-option:hover {
+      background: #f0f0f0;
+    }
+    .background-option.active {
+      background: #e0e0e0;
+    }
   </style>
   <!-- Load Three.js and its dependencies -->
   <script src="/static/js/three.min.js"></script>
@@ -73,11 +199,40 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3/drawing_utils.js"></script>
 </head>
 <body>
-  <video id="cameraFeed" autoplay muted playsinline></video>
-  <canvas id="threeCanvas"></canvas>
-  <button id="openBtn">Open Camera</button>
-  <button id="captureBtn">Take Photo</button>
-  <div id="resultText"></div>
+  <div class="container">
+    <div class="top-section">
+      <video id="cameraFeed" autoplay muted playsinline></video>
+      <canvas id="threeCanvas"></canvas>
+      <button id="openBtn">Open Camera</button>
+      <button id="captureBtn">Take Photo</button>
+      <button id="backgroundToggle">Change Background</button>
+      <div class="background-options">
+        <div class="background-option" data-bg="webcam">Webcam</div>
+        <div class="background-option" data-bg="white">White</div>
+        <div class="background-option" data-bg="black">Black</div>
+      </div>
+      <div id="resultText"></div>
+    </div>
+    <div class="bottom-section">
+      <div class="explanation-section">
+        <h2>Heart Diagram Explanation</h2>
+        <ul class="explanation-points">
+          <li>The heart is a muscular organ that pumps blood throughout the body.</li>
+          <li>It has four chambers: two atria and two ventricles.</li>
+          <li>The right side pumps blood to the lungs for oxygenation.</li>
+          <li>The left side pumps oxygenated blood to the body.</li>
+          <li>Valves prevent backflow of blood between chambers.</li>
+        </ul>
+        <button class="play-button" onclick="speakExplanation()">
+          <span>▶</span> Play Explanation
+        </button>
+      </div>
+      <div class="youtube-section">
+        <h2>Related Videos</h2>
+        <div id="youtubeVideos"></div>
+      </div>
+    </div>
+  </div>
 
   <script>
     // Wait for Three.js to load
@@ -89,6 +244,9 @@
       const openBtn = document.getElementById('openBtn');
       const captureBtn = document.getElementById('captureBtn');
       const resultText = document.getElementById('resultText');
+      const backgroundToggle = document.getElementById('backgroundToggle');
+      const backgroundOptions = document.querySelector('.background-options');
+      const backgroundOptionElements = document.querySelectorAll('.background-option');
       
       const GEMINI_API_KEY = 'AIzaSyBHVWfY-js7KnjSQGuRe_Q0S2Tfu6W_cLI';
       
@@ -122,6 +280,71 @@
       let lastMouseY = 0;
       let mouseSensitivity = 0.01;
       let mouseZoomSpeed = 0.1;
+      let isRightMouseDown = false;
+      let lastRightMouseX = 0;
+      let lastRightMouseY = 0;
+      let mouseRotationSpeed = 0.005;
+      let mousePanSpeed = 0.005;
+      let isTrackpad = false;
+      let lastWheelTime = 0;
+      let wheelDelta = 0;
+
+      let currentBackground = 'webcam';
+      let isCameraActive = false;
+      
+      // Function to set background
+      function setBackground(type) {
+        currentBackground = type;
+        
+        // Update active state of options
+        backgroundOptionElements.forEach(option => {
+          option.classList.toggle('active', option.dataset.bg === type);
+        });
+        
+        switch(type) {
+          case 'webcam':
+            video.style.display = 'block';
+            canvas.style.backgroundColor = 'transparent';
+            break;
+          case 'white':
+            video.style.display = 'none';
+            canvas.style.backgroundColor = '#ffffff';
+            break;
+          case 'black':
+            video.style.display = 'none';
+            canvas.style.backgroundColor = '#000000';
+            break;
+        }
+        
+        // Update text color based on background
+        if (type === 'white') {
+          resultText.style.color = 'black';
+          resultText.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.2)';
+        } else {
+          resultText.style.color = 'white';
+          resultText.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.5)';
+        }
+        
+        // Close options menu
+        backgroundOptions.style.display = 'none';
+      }
+
+      // Toggle background options menu
+      backgroundToggle.addEventListener('click', () => {
+        backgroundOptions.style.display = 
+          backgroundOptions.style.display === 'none' ? 'block' : 'none';
+      });
+
+      // Handle background option selection
+      backgroundOptionElements.forEach(option => {
+        option.addEventListener('click', () => {
+          const bgType = option.dataset.bg;
+          if (bgType === 'webcam' && !isCameraActive) {
+            initCamera();
+          }
+          setBackground(bgType);
+        });
+      });
 
       // Function to capture model view
       function captureModelView(angle) {
@@ -418,6 +641,7 @@
             } 
           });
           video.srcObject = stream;
+          isCameraActive = true;
           
           // Wait for video to be ready
           video.onloadedmetadata = () => {
@@ -444,6 +668,8 @@
           };
         } catch (err) {
           console.error('Camera error:', err);
+          // If camera fails, switch to black background
+          setBackground('black');
         }
       }
 
@@ -511,46 +737,112 @@
 
       // Add mouse event handlers
       function initMouseControls() {
-        // Mouse down event
+        // Detect if using trackpad
+        canvas.addEventListener('wheel', (event) => {
+          const now = Date.now();
+          if (now - lastWheelTime < 50) {
+            isTrackpad = true;
+          }
+          lastWheelTime = now;
+          wheelDelta = event.deltaY;
+        });
+
+        // Left mouse button for rotation
         canvas.addEventListener('mousedown', (event) => {
-          isMouseDown = true;
-          lastMouseX = event.clientX;
-          lastMouseY = event.clientY;
+          if (event.button === 0) { // Left mouse button
+            isMouseDown = true;
+            lastMouseX = event.clientX;
+            lastMouseY = event.clientY;
+            canvas.style.cursor = 'grabbing';
+          } else if (event.button === 2) { // Right mouse button
+            isRightMouseDown = true;
+            lastRightMouseX = event.clientX;
+            lastRightMouseY = event.clientY;
+            canvas.style.cursor = 'move';
+          }
         });
 
         // Mouse up event
-        canvas.addEventListener('mouseup', () => {
-          isMouseDown = false;
+        canvas.addEventListener('mouseup', (event) => {
+          if (event.button === 0) {
+            isMouseDown = false;
+            canvas.style.cursor = 'grab';
+          } else if (event.button === 2) {
+            isRightMouseDown = false;
+            canvas.style.cursor = 'default';
+          }
         });
 
-        // Mouse move event for rotation
+        // Mouse move event for rotation and panning
         canvas.addEventListener('mousemove', (event) => {
-          if (!isMouseDown || !model) return;
+          if (!model) return;
           
-          const deltaX = event.clientX - lastMouseX;
-          const deltaY = event.clientY - lastMouseY;
-          
-          targetRotation.y += deltaX * mouseSensitivity;
-          targetRotation.x += deltaY * mouseSensitivity;
-          
-          // Clamp rotation
-          targetRotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, targetRotation.x));
-          targetRotation.y = Math.max(-Math.PI, Math.min(Math.PI, targetRotation.y));
-          
-          lastMouseX = event.clientX;
-          lastMouseY = event.clientY;
+          if (isMouseDown) {
+            // Rotation with trackpad support
+            const deltaX = event.clientX - lastMouseX;
+            const deltaY = event.clientY - lastMouseY;
+            
+            // Adjust sensitivity based on whether using trackpad
+            const rotationMultiplier = isTrackpad ? 0.5 : 1;
+            
+            targetRotation.y += deltaX * mouseRotationSpeed * rotationMultiplier;
+            targetRotation.x += deltaY * mouseRotationSpeed * rotationMultiplier;
+            
+            // Clamp rotation
+            targetRotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, targetRotation.x));
+            targetRotation.y = Math.max(-Math.PI, Math.min(Math.PI, targetRotation.y));
+            
+            lastMouseX = event.clientX;
+            lastMouseY = event.clientY;
+          } else if (isRightMouseDown) {
+            // Panning with trackpad support
+            const deltaX = event.clientX - lastRightMouseX;
+            const deltaY = event.clientY - lastRightMouseY;
+            
+            // Adjust sensitivity based on whether using trackpad
+            const panMultiplier = isTrackpad ? 0.5 : 1;
+            
+            // Calculate pan direction in world space
+            const panX = deltaX * mousePanSpeed * panMultiplier;
+            const panY = -deltaY * mousePanSpeed * panMultiplier; // Invert Y for natural movement
+            
+            // Apply pan to model position
+            model.position.x += panX;
+            model.position.y += panY;
+            
+            lastRightMouseX = event.clientX;
+            lastRightMouseY = event.clientY;
+          }
         });
 
-        // Mouse wheel event for zoom
+        // Enhanced mouse wheel event for zoom with trackpad support
         canvas.addEventListener('wheel', (event) => {
           if (!model) return;
           
-          const zoomDelta = event.deltaY * mouseZoomSpeed;
-          const newZoom = camera.position.z + zoomDelta;
+          // Calculate zoom direction and amount
+          const zoomDirection = Math.sign(event.deltaY);
+          
+          // Adjust zoom speed based on whether using trackpad
+          const zoomMultiplier = isTrackpad ? 0.5 : 1;
+          const zoomAmount = zoomDirection * mouseZoomSpeed * zoomMultiplier;
+          
+          // Calculate new zoom target
+          const newZoom = camera.position.z + zoomAmount;
           
           // Clamp zoom
           targetZoom = Math.max(minZoom, Math.min(maxZoom, newZoom));
+          
+          // Prevent default scroll behavior
+          event.preventDefault();
         });
+
+        // Prevent context menu on right click
+        canvas.addEventListener('contextmenu', (event) => {
+          event.preventDefault();
+        });
+
+        // Set initial cursor style
+        canvas.style.cursor = 'grab';
       }
 
       // Initialize Three.js scene and render
@@ -632,16 +924,14 @@
       function animate() {
         requestAnimationFrame(animate);
         
-        // Smoothly interpolate camera position to target zoom
-        if (camera) {
+        if (model) {
+          // Smooth zoom interpolation
           const zoomDelta = targetZoom - camera.position.z;
           if (Math.abs(zoomDelta) > 0.001) {
             camera.position.z += zoomDelta * zoomInterpolationFactor;
           }
-        }
-        
-        // Smoothly interpolate model rotation
-        if (model) {
+          
+          // Smooth rotation interpolation
           const rotationDeltaX = targetRotation.x - model.rotation.x;
           const rotationDeltaY = targetRotation.y - model.rotation.y;
           
@@ -668,6 +958,7 @@
         openBtn.style.display = 'none';
         initCamera();
         initThreeJS();
+        setBackground('webcam');
       });
 
       // Add event listener for capture button
@@ -679,6 +970,69 @@
           camera.aspect = window.innerWidth / window.innerHeight;
           camera.updateProjectionMatrix();
           renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+      });
+
+      // Initialize with black background
+      setBackground('black');
+
+      // YouTube API Key
+      const YOUTUBE_API_KEY = 'AIzaSyA2qVjCe8M_VI7GdcHetLMLHa7aqcqFl0I';
+
+      // Function to fetch YouTube videos
+      async function fetchYouTubeVideos() {
+        try {
+          const response = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=heart+diagram+explanation&type=video&maxResults=5&key=${YOUTUBE_API_KEY}`);
+          const data = await response.json();
+          
+          const videosContainer = document.getElementById('youtubeVideos');
+          videosContainer.innerHTML = '';
+          
+          data.items.forEach(item => {
+            const videoContainer = document.createElement('div');
+            videoContainer.className = 'video-container';
+            
+            videoContainer.innerHTML = `
+              <img src="${item.snippet.thumbnails.medium.url}" class="video-thumbnail" alt="${item.snippet.title}">
+              <div class="video-info">
+                <div class="video-title">${item.snippet.title}</div>
+                <div class="video-channel">${item.snippet.channelTitle}</div>
+              </div>
+            `;
+            
+            // Add click event to open video
+            videoContainer.addEventListener('click', () => {
+              window.open(`https://www.youtube.com/watch?v=${item.id.videoId}`, '_blank');
+            });
+            
+            videosContainer.appendChild(videoContainer);
+          });
+        } catch (error) {
+          console.error('Error fetching YouTube videos:', error);
+        }
+      }
+
+      // Function to speak explanation
+      function speakExplanation() {
+        const explanation = document.querySelector('.explanation-points').textContent;
+        const speech = new SpeechSynthesisUtterance(explanation);
+        speech.rate = 1;
+        speech.pitch = 1;
+        window.speechSynthesis.speak(speech);
+      }
+
+      // Initialize the application
+      window.addEventListener('load', function() {
+        // ... existing initialization code ...
+        
+        // Fetch YouTube videos when the page loads
+        fetchYouTubeVideos();
+        
+        // Initialize text-to-speech
+        if ('speechSynthesis' in window) {
+          console.log('Text-to-speech supported');
+        } else {
+          console.log('Text-to-speech not supported');
         }
       });
     });
