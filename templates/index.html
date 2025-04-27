@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>3D Model in Camera</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    #cameraFeed {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      z-index: 0;
+    }
+    #threeCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+      pointer-events: none;
+    }
+    #openBtn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 2;
+      padding: 10px 20px;
+      background: purple;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+  </style>
+  <!-- Load Three.js and its dependencies -->
+  <script src="/static/js/three.min.js"></script>
+  <script src="/static/js/GLTFLoader.js"></script>
+  <!-- Add MediaPipe hand tracking -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3/drawing_utils.js"></script>
+</head>
+<body>
+  <video id="cameraFeed" autoplay muted playsinline></video>
+  <canvas id="threeCanvas"></canvas>
+  <button id="openBtn">Open Camera</button>
+
+  <script>
+    // Wait for Three.js to load
+    window.addEventListener('load', function() {
+      console.log('Three.js loaded:', typeof THREE !== 'undefined');
+      
+      const video = document.getElementById('cameraFeed');
+      const canvas = document.getElementById('threeCanvas');
+      const openBtn = document.getElementById('openBtn');
+
+      let scene, camera, renderer, model;
+      let hands;
+      let lastPinchDistance = 0;
+      let lastHandPosition = null;
+      let targetZoom = 3;
+      let targetRotation = { x: 0, y: 0 };  // Target rotation angles
+      const minZoom = 1;
+      const maxZoom = 5;
+      const zoomSpeed = 0.05;
+      const zoomInterpolationFactor = 0.05;  // Reduced for smoother zoom
+      const rotationInterpolationFactor = 0.1;  // Increased for more responsive rotation
+      const rotationSensitivity = 3.0;  // Increased sensitivity for more rotation
+      let isHandTrackingActive = false;
+      
+      // Add smoothing buffers
+      const positionBuffer = [];
+      const rotationBuffer = [];
+      const bufferSize = 3;  // Reduced buffer size for more responsive movement
+      const movementThreshold = 0.005;  // Reduced threshold for more sensitive movement
+
+      // Initialize MediaPipe Hands
+      function initHandTracking() {
+        console.log('Initializing hand tracking...');
+        hands = new Hands({
+          locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${file}`;
+          }
+        });
+        
+        hands.setOptions({
+          maxNumHands: 1,  // Changed to 1 hand for better focus
+          modelComplexity: 0,  // Changed to 0 for faster processing
+          minDetectionConfidence: 0.7,  // Increased confidence threshold
+          minTrackingConfidence: 0.7    // Increased confidence threshold
+        });
+
+        hands.onResults(onHandResults);
+        console.log('Hand tracking initialized');
+      }
+
+      // Process hand tracking results
+      function onHandResults(results) {
+        if (!results.multiHandLandmarks) {
+          if (isHandTrackingActive) {
+            console.log('Hand lost, maintaining last position');
+            isHandTrackingActive = false;
+          }
+          return;
+        }
+
+        if (!model) {
+          console.log('Model not loaded yet');
+          return;
+        }
+
+        isHandTrackingActive = true;
+        const landmarks = results.multiHandLandmarks[0];
+        
+        if (landmarks) {
+          const thumbTip = landmarks[4];
+          const indexTip = landmarks[8];
+          const palmBase = landmarks[0];  // Wrist point
+          
+          // Handle pinch zoom with smoothing
+          const pinchDistance = Math.sqrt(
+            Math.pow(thumbTip.x - indexTip.x, 2) +
+            Math.pow(thumbTip.y - indexTip.y, 2)
+          );
+
+          if (lastPinchDistance === 0) {
+            lastPinchDistance = pinchDistance;
+            lastHandPosition = { x: palmBase.x, y: palmBase.y };
+            return;
+          }
+
+          // Calculate zoom factor with threshold
+          const zoomFactor = lastPinchDistance / pinchDistance;
+          if (Math.abs(1 - zoomFactor) > 0.05) {  // Only update if significant change
+            const newTargetZoom = camera.position.z * zoomFactor;
+            targetZoom = Math.max(minZoom, Math.min(maxZoom, newTargetZoom));
+          }
+          lastPinchDistance = pinchDistance;
+
+          // Handle hand rotation with smoothing
+          if (lastHandPosition) {
+            // Calculate hand movement delta with increased sensitivity
+            const deltaX = (palmBase.x - lastHandPosition.x) * rotationSensitivity;
+            const deltaY = (palmBase.y - lastHandPosition.y) * rotationSensitivity;
+
+            // Only update if movement is significant
+            if (Math.abs(deltaX) > movementThreshold || Math.abs(deltaY) > movementThreshold) {
+              // Add to rotation buffer
+              rotationBuffer.push({ x: deltaX, y: deltaY });
+              if (rotationBuffer.length > bufferSize) {
+                rotationBuffer.shift();
+              }
+
+              // Calculate average rotation with reduced smoothing
+              const avgRotation = rotationBuffer.reduce((acc, curr) => {
+                return { x: acc.x + curr.x, y: acc.y + curr.y };
+              }, { x: 0, y: 0 });
+              
+              const avgDeltaX = avgRotation.x / rotationBuffer.length;
+              const avgDeltaY = avgRotation.y / rotationBuffer.length;
+
+              // Update target rotation with increased movement
+              targetRotation.y += avgDeltaX * 1.5;  // Increased rotation multiplier
+              targetRotation.x += avgDeltaY * 1.5;  // Increased rotation multiplier
+
+              // Clamp rotation to reasonable bounds
+              targetRotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, targetRotation.x));
+              targetRotation.y = Math.max(-Math.PI, Math.min(Math.PI, targetRotation.y));
+            }
+          }
+
+          lastHandPosition = { x: palmBase.x, y: palmBase.y };
+        }
+      }
+
+      // Initialize the camera feed
+      async function initCamera() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+              width: 640,  // Reduced resolution
+              height: 480,
+              facingMode: 'user'
+            } 
+          });
+          video.srcObject = stream;
+          
+          // Wait for video to be ready
+          video.onloadedmetadata = () => {
+            console.log('Video stream ready');
+            // Initialize hand tracking after camera is ready
+            initHandTracking();
+            
+            // Start sending frames to MediaPipe
+            const camera = new Camera(video, {
+              onFrame: async () => {
+                try {
+                  await hands.send({ image: video });
+                } catch (error) {
+                  console.error('Error processing hand tracking:', error);
+                }
+              },
+              width: 640,  // Match video resolution
+              height: 480
+            });
+            camera.start();
+            console.log('Camera tracking started');
+          };
+        } catch (err) {
+          console.error('Camera error:', err);
+        }
+      }
+
+      // Initialize Three.js scene and render
+      function initThreeJS() {
+        console.log('Initializing Three.js...');
+        if (typeof THREE === 'undefined') {
+          console.error('Three.js not loaded!');
+          return;
+        }
+
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 3);
+
+        renderer = new THREE.WebGLRenderer({ 
+          canvas: canvas, 
+          alpha: true,
+          antialias: true
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setClearColor(0x000000, 0);
+
+        // Add better lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 5, 5);
+        scene.add(directionalLight);
+
+        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight2.position.set(-5, -5, -5);
+        scene.add(directionalLight2);
+
+        console.log('Three.js scene initialized');
+
+        const loader = new THREE.GLTFLoader();
+        console.log('Starting to load model...');
+        
+        loader.load('/static/model.glb', 
+          function (gltf) {
+            console.log('Model loaded successfully:', gltf);
+            model = gltf.scene;
+            
+            // Center the model
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            model.position.sub(center); // Center the model at origin
+
+            // Scale the model appropriately
+            const scale = 1.5; // Increased scale from 0.5 to 1.5
+            model.scale.set(scale, scale, scale);
+            
+            // Position the model in front of the camera
+            model.position.set(0, -1, -2); // Adjusted position for larger scale
+            
+            scene.add(model);
+            console.log('Model added to scene');
+            animate();
+          }, 
+          function (xhr) {
+            console.log('Loading progress:', (xhr.loaded / xhr.total * 100) + '%');
+          },
+          function (error) {
+            console.error('Error loading model:', error);
+          }
+        );
+      }
+
+      // Animation loop
+      function animate() {
+        requestAnimationFrame(animate);
+        
+        // Smoothly interpolate camera position to target zoom
+        if (camera) {
+          const zoomDelta = targetZoom - camera.position.z;
+          if (Math.abs(zoomDelta) > 0.001) {  // Only update if significant change
+            camera.position.z += zoomDelta * zoomInterpolationFactor;
+          }
+        }
+        
+        // Smoothly interpolate model rotation
+        if (model) {
+          const rotationDeltaX = targetRotation.x - model.rotation.x;
+          const rotationDeltaY = targetRotation.y - model.rotation.y;
+          
+          if (Math.abs(rotationDeltaX) > 0.001 || Math.abs(rotationDeltaY) > 0.001) {
+            model.rotation.x += rotationDeltaX * rotationInterpolationFactor;
+            model.rotation.y += rotationDeltaY * rotationInterpolationFactor;
+          }
+        }
+        
+        renderer.render(scene, camera);
+      }
+
+      // Button to open the camera
+      openBtn.addEventListener('click', () => {
+        openBtn.style.display = 'none';
+        initCamera();
+        initThreeJS();
+      });
+
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        if (camera && renderer) {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
