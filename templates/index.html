@@ -4,11 +4,113 @@
   <meta charset="UTF-8">
   <title>3D Model in Camera</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
     body, html {
       margin: 0;
       padding: 0;
       overflow: hidden;
+      font-family: 'Space Mono', monospace;
     }
+
+    /* Common button styles */
+    .btn-common {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-family: 'Space Mono', monospace;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-common:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 15px rgba(33, 150, 243, 0.6);
+    }
+
+    #openBtn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 2;
+      background: #2196F3;
+    }
+
+    #captureBtn {
+      position: absolute;
+      top: 20px;
+      left: 150px;
+      z-index: 2;
+      background: #2196F3;
+      display: none;
+    }
+
+    #backgroundToggle {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 2;
+      background: #2196F3;
+    }
+
+    #resultText {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      color: white;
+      font-size: 28px;
+      font-weight: bold;
+      text-align: center;
+      font-family: 'Space Mono', monospace;
+      text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5),
+                   0 0 20px rgba(33, 150, 243, 0.4);
+      background: rgba(0, 0, 0, 0.4);
+      padding: 10px 20px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .background-options {
+      position: absolute;
+      top: 70px;
+      right: 20px;
+      z-index: 2;
+      display: none;
+      background: white;
+      border-radius: 12px;
+      padding: 10px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      font-family: 'Space Mono', monospace;
+    }
+
+    .background-option {
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 8px;
+      margin: 4px 0;
+      transition: all 0.3s ease;
+    }
+
+    .background-option:hover {
+      background: rgba(33, 150, 243, 0.1);
+      color: #2196F3;
+    }
+
+    .background-option.active {
+      background: rgba(33, 150, 243, 0.2);
+      color: #2196F3;
+    }
+
+    /* Apply common button class */
+    #openBtn, #captureBtn, #backgroundToggle {
+      composes: btn-common;
+    }
+
     #cameraFeed {
       position: absolute;
       top: 0;
@@ -27,81 +129,6 @@
       z-index: 1;
       touch-action: none;
     }
-    #openBtn {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      z-index: 2;
-      padding: 10px 20px;
-      background: purple;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-    }
-    #captureBtn {
-      position: absolute;
-      top: 20px;
-      left: 150px;
-      z-index: 2;
-      padding: 10px 20px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      display: none;
-    }
-    #resultText {
-      position: absolute;
-      top: 80px;
-      left: 20px;
-      z-index: 2;
-      color: white;
-      font-size: 24px;
-      font-weight: bold;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-      display: none;
-    }
-    #backgroundToggle {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      z-index: 2;
-      padding: 10px 20px;
-      background: #2196F3;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    #backgroundToggle:hover {
-      background: #1976D2;
-    }
-    .background-options {
-      position: absolute;
-      top: 60px;
-      right: 20px;
-      z-index: 2;
-      display: none;
-      background: white;
-      border-radius: 8px;
-      padding: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-    .background-option {
-      padding: 8px 16px;
-      cursor: pointer;
-      border-radius: 4px;
-      margin: 4px 0;
-    }
-    .background-option:hover {
-      background: #f0f0f0;
-    }
-    .background-option.active {
-      background: #e0e0e0;
-    }
     .explanation-section {
       position: absolute;
       bottom: 0;
@@ -113,13 +140,50 @@
       display: flex;
       gap: 20px;
       z-index: 2;
+      transition: transform 0.3s ease-in-out;
     }
+    
+    .explanation-section.collapsed {
+      transform: translateY(calc(100% - 40px));
+    }
+    
+    .toggle-explanation {
+      position: absolute;
+      top: -40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+    
+    .toggle-explanation:hover {
+      background: rgba(0, 0, 0, 0.9);
+    }
+    
+    .toggle-explanation .arrow {
+      transition: transform 0.3s ease;
+      display: inline-block;
+    }
+    
+    .explanation-section.collapsed .toggle-explanation .arrow {
+      transform: rotate(180deg);
+    }
+    
     .explanation-left {
       flex: 1;
       padding: 20px;
       background: rgba(255, 255, 255, 0.1);
       border-radius: 8px;
     }
+    
     .explanation-right {
       flex: 1;
       padding: 20px;
@@ -181,9 +245,9 @@
 <body>
   <video id="cameraFeed" autoplay muted playsinline></video>
   <canvas id="threeCanvas"></canvas>
-  <button id="openBtn">Open Camera</button>
-  <button id="captureBtn">Take Photo</button>
-  <button id="backgroundToggle">Change Background</button>
+  <button id="openBtn" class="btn-common">Open Camera</button>
+  <button id="captureBtn" class="btn-common">Take Photo</button>
+  <button id="backgroundToggle" class="btn-common">Change Background</button>
   <div class="background-options">
     <div class="background-option" data-bg="webcam">Webcam</div>
     <div class="background-option" data-bg="white">White</div>
@@ -191,6 +255,10 @@
   </div>
   <div id="resultText"></div>
   <div class="explanation-section">
+    <button class="toggle-explanation">
+      <span class="arrow">▼</span>
+      <span class="text">Explanation & Videos</span>
+    </button>
     <div class="explanation-left">
       <h3>Heart Diagram Explanation</h3>
       <button class="play-button" onclick="speakExplanation()">
@@ -586,7 +654,7 @@
                     }
                   },
                   {
-                    text: "Identify the main object in this image with a single word. Return ONLY the word, nothing else."
+                    text: "Identify the main object in this image. Return ONLY a single word, nothing else. For example, if you see a heart, just return 'heart'. If you see a brain, just return 'brain'. Do not include any punctuation, explanations, or additional text."
                   }
                 ]
               }]
@@ -829,50 +897,12 @@
         scene.add(directionalLight2);
 
         console.log('Three.js scene initialized');
-
-        const loader = new THREE.GLTFLoader();
-        console.log('Starting to load model...');
         
-        loader.load('/static/model.glb', 
-          function (gltf) {
-            console.log('Model loaded successfully:', gltf);
-            model = gltf.scene;
-            
-            // Center the model
-            const box = new THREE.Box3().setFromObject(model);
-            const center = box.getCenter(new THREE.Vector3());
-            model.position.sub(center);
-
-            // Scale the model appropriately
-            const scale = 2.0;  // Increased scale
-            model.scale.set(scale, scale, scale);
-            
-            // Position the model in front of the camera
-            model.position.set(0, -1, -2);
-            
-            scene.add(model);
-            console.log('Model added to scene');
-            
-            // Initialize mouse controls
-            initMouseControls();
-            
-            // Analyze the model and create labels based on the actual model
-            analyzeModelViews();
-            
-            // Fetch YouTube videos after model is loaded
-            fetchYouTubeVideos().catch(error => {
-              console.error('Failed to fetch YouTube videos:', error);
-            });
-            
-            animate();
-          }, 
-          function (xhr) {
-            console.log('Loading progress:', (xhr.loaded / xhr.total * 100) + '%');
-          },
-          function (error) {
-            console.error('Error loading model:', error);
-          }
-        );
+        // Initialize mouse controls
+        initMouseControls();
+        
+        // Start animation loop
+        animate();
       }
 
       // Animation loop
@@ -1145,6 +1175,17 @@
         // Set initial cursor style
         canvas.style.cursor = 'grab';
       }
+
+      // Add toggle functionality for explanation section
+      const explanationSection = document.querySelector('.explanation-section');
+      const toggleButton = document.querySelector('.toggle-explanation');
+      
+      toggleButton.addEventListener('click', () => {
+        explanationSection.classList.toggle('collapsed');
+      });
+      
+      // Start with explanation section collapsed
+      explanationSection.classList.add('collapsed');
     });
   </script>
 </body>
